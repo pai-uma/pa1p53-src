@@ -37,15 +37,7 @@ public class Mundo {
      * @param map	Correspondencia
 	 */
     public static <K,V> void presentaEnConsola(Map<K,V> map) {
-		PrintWriter pw = null;
-		try {
-			pw = new PrintWriter(System.out, true);
-			presentaEnPW(pw, map);
-		} finally {
-			if (pw != null) {
-				pw.flush();
-			}
-		}
+    	presentaEnPW(new PrintWriter(System.out,true),map);
     }
 	//------------------------------------------------------------------
     
@@ -53,7 +45,7 @@ public class Mundo {
     private List<Pais> paises;
 
     /**
-     * Constructor para inicializar la lista de países a una lista vacía.
+     * Constructor para inicializar la lista de países con la que se pasa como argumento.
      */
 	public Mundo() {
         paises = new LinkedList<>();
@@ -87,7 +79,7 @@ public class Mundo {
             }
         }
 	}
-
+	
 	/**
 	 * Lectura alternativa de países, utilizando BufferedReader en vez de Scanner.
 	 * 
@@ -117,27 +109,24 @@ public class Mundo {
 			scPais.useLocale(Locale.ENGLISH);
 			Pais pais = new Pais(scPais.next(), scPais.next(), scPais.nextDouble());
 			paises.add(pais);
-		} catch (InputMismatchException e) {
-			// se ignora
-		} catch (NoSuchElementException e) {
-			// se ignora
-		}
+		} catch (NoSuchElementException e) { // Incluye también InputMismatchException
+			// Se ignora la línea
+		} 
 	}
 
 	/**
-	 * Devuelve una correspondencia ordenada que asocia a cada continente
+	 * Devuelve una correspondencia que asocia a cada continente
 	 * el número de países que tiene.
 	 * 
 	 * @return	Correspondencia entre continentes y número de países
 	 */
-    public SortedMap<String, Integer> numeroDePaisesPorContinente() {
-        SortedMap<String, Integer> map = new TreeMap<>();
+    public Map<String, Integer> numeroDePaisesPorContinente() {
+    	// Creamos un TreeMap para que se almacenen los continentes ordenados por nombre
+        Map<String, Integer> map = new TreeMap<>();
         for (Pais pais : paises) {
-			Integer np = map.get(pais.getContinente());
-			if (np == null) {
-				np = 0;
-			}
-			map.put(pais.getContinente(), np+1);
+        	String continente = pais.getContinente();
+			int np = map.getOrDefault(continente,0);
+			map.put(continente, np+1);
         }
         return map;
     }
@@ -149,17 +138,22 @@ public class Mundo {
      * 
      * @return	Correspondencia entre alturas medias y listas de países
      */
-    public SortedMap<Double, List<Pais>> paisesPorAltura() {
-        SortedMap<Double, List<Pais>> map = new TreeMap<>();
+    public Map<Double, List<Pais>> paisesPorAltura() {
+    	// Creamos un TeeMap para que se almacenen ordenados por la altura
+        Map<Double, List<Pais>> map = new TreeMap<>();
         for (Pais pais : paises) {
             double altura = pais.getAltura();
             double altura1Dec = (int)(altura*10)/10.0;
+            
             List<Pais> list = map.get(altura1Dec);
             if (list == null) {
                 list = new ArrayList<>();
                 map.put(altura1Dec, list);
             }
             list.add(pais);
+            
+            //List<Pais> list = map.computeIfAbsent(altura1Dec, (alt) -> new ArrayList<>());
+            //list.add(pais);
         }
         return map;
     }
@@ -233,7 +227,7 @@ public class Mundo {
      * @return	Lista de continentes
      */
     public List<String> continentesConMasPaises() {
-        SortedMap<String, Integer> map = numeroDePaisesPorContinente();
+        Map<String, Integer> map = numeroDePaisesPorContinente();
         List<String> res = new LinkedList<>();
 		Collection<Integer> values = map.values();
 		if (values.size() > 0) {
@@ -252,8 +246,27 @@ public class Mundo {
      * 
      * @return Lista de continentes 
      */
+    public List<String> continentesConMasPaises_Alternativo_1() {
+        Map<String, Integer> map = numeroDePaisesPorContinente();
+        SortedMap<Integer, List<String>> mapI = new TreeMap<>();
+        for (Map.Entry<String, Integer> entry : map.entrySet()) {
+            List<String> paises = mapI.get(entry.getValue());
+            if (paises == null) {
+                paises = new LinkedList<>();
+                mapI.put(entry.getValue(), paises);
+            }
+            paises.add(entry.getKey());
+        }
+        return mapI.isEmpty() ? new LinkedList<>() : mapI.get(mapI.lastKey());
+    }
+
+    /**
+     * Devuelve la lista de los contienentes con más países, utilizando un método alternativo.
+     * 
+     * @return Lista de continentes 
+     */
     public List<String> continentesConMasPaises_Alternativo_2() {
-        SortedMap<String, Integer> map = numeroDePaisesPorContinente();
+        Map<String, Integer> map = numeroDePaisesPorContinente();
 		int maxValor = 0;
         for (Map.Entry<String, Integer> entry : map.entrySet()) {
 			if (entry.getValue() > maxValor) {
@@ -269,46 +282,6 @@ public class Mundo {
         return res;
     }
 
-    /**
-     * Devuelve la lista de los contienentes con más países, utilizando un método alternativo.
-     * 
-     * @return Lista de continentes 
-     */
-    public List<String> continentesConMasPaises_Alternativo_3() {
-        SortedMap<String, Integer> map = numeroDePaisesPorContinente();
-        List<String> res = new LinkedList<>();
-		int maxValor = 0;
-        for (Map.Entry<String, Integer> entry : map.entrySet()) {
-			if (entry.getValue() >= maxValor) {
-				if (entry.getValue() > maxValor) {
-					maxValor = entry.getValue();
-					res.clear();
-				}
-				res.add(entry.getKey());
-			}
-        }
-        return res;
-    }
-    
-    /**
-     * Devuelve la lista de los contienentes con más países, utilizando un método alternativo.
-     * 
-     * @return Lista de continentes 
-     */
-    public List<String> continentesConMasPaises_Alternativo_4() {
-        SortedMap<String, Integer> map = numeroDePaisesPorContinente();
-        SortedMap<Integer, List<String>> mapI = new TreeMap<>();
-        for (Map.Entry<String, Integer> entry : map.entrySet()) {
-            List<String> paises = mapI.get(entry.getValue());
-            if (paises == null) {
-                paises = new LinkedList<>();
-                mapI.put(entry.getValue(), paises);
-            }
-            paises.add(entry.getKey());
-        }
-        return mapI.isEmpty() ? new LinkedList<>() : mapI.get(mapI.lastKey());
-    }
-
 	//------------------------------------------------------------------
 	//-- Resultados con orden alternativo ------------------------------
 	//------------------------------------------------------------------
@@ -320,8 +293,10 @@ public class Mundo {
      * @return	Conjunto ordenado de países
      */
     public SortedSet<Pais> paisesOrdenadosPorAltura() {
-        // SortedSet<Pais> set = new TreeSet<>(new CompAlturaNombre());
-        SortedSet<Pais> set = new TreeSet<>(new CompAltura().thenComparing(new CompNombre()));
+        //Comparator<Pais> ordenAltura = new CompAlturaNombre();
+    	//Comparator<Pais> ordenAltura = (Comparator.comparing((Pais pais) -> pais.getAltura())).thenComparing(Comparator.naturalOrder());
+    	Comparator<Pais> ordenAltura = new CompAltura().thenComparing(new CompNombre());
+        SortedSet<Pais> set = new TreeSet<>(ordenAltura);
         set.addAll(paises);
         return set;
     }
@@ -338,8 +313,8 @@ public class Mundo {
             String continente = pais.getContinente();
             SortedSet<Pais> set = map.get(continente);
             if (set == null) {
-                //set = new TreeSet<>(new CompAlturaNombre());
-				set = new TreeSet<>(new CompAltura().thenComparing(new CompNombre()));
+                // Ver método paisesOrdenadosPorAltura()
+				set = new TreeSet<>(new CompAltura().thenComparing(Comparator.naturalOrder()));
                 map.put(continente, set);
             }
             set.add(pais);
